@@ -82,6 +82,7 @@ def pooling(x, filter_size=2, stride=1, type="max"):
 
 
 def padding_image(x, pad_width):
+    np.pad(x, pad_width= ((pad_width, pad_width), (pad_width, pad_width), (0, 0)))
     return 
 
 def relu(x): 
@@ -90,5 +91,29 @@ def relu(x):
 def leaky_relu(x, alpha=0.01): 
     return np.where(x > 0, x, x * alpha)
 
-def batch_norm(x): 
-    return 
+class BatchNorm2D:
+    def __init__(self, channels, alpha=0.1):
+        self.running_mean = np.zeros(channels)
+        self.running_variance = np.ones(channels)
+        
+        # alpha in your formula
+        self.momentum = alpha
+
+    def forward(self, batch, gamma, beta, training=True, e=1e-5):
+        if training:
+
+            mean = np.mean(batch, axis=(0, 1, 2))
+            variance = np.var(batch, axis=(0, 1, 2))
+
+            self.running_mean = self.momentum * mean + (1 - self.momentum) * self.running_mean
+            self.running_variance = self.momentum * variance + (1 - self.momentum) * self.running_variance
+
+            batch_normalized = (batch - mean) / np.sqrt(variance + e)
+            
+        else:
+            batch_normalized = (batch - self.running_mean) / np.sqrt(self.running_variance + e)
+
+        y = gamma * batch_normalized + beta
+        return y
+
+    
