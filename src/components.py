@@ -115,5 +115,44 @@ class BatchNorm2D:
 
         y = gamma * batch_normalized + beta
         return y
-
     
+def initialization(kernel, type="Xa"): 
+    kernel_shape = kernel.shape
+    if len(kernel_shape) == 4:
+        fan_in = kernel_shape[0] * kernel_shape[1] * kernel_shape[2]
+    else: 
+        fan_in = kernel_shape[0] #In_features
+    
+    if type == "Xa": 
+        weights = np.random.randn(*kernel_shape) / np.sqrt(1 / fan_in)
+    elif type == "He":
+        weights = np.random.randn(*kernel_shape) * np.sqrt(2 / fan_in) #If ReLU
+                                                
+    return weights 
+
+def weight_decay(w):
+    weight_decay = w**2
+    return weight_decay 
+
+def softmax(scores): 
+    #scores_shape = (Batch_size, Num_classes)
+    shifted_scores = scores - np.max(scores, axis=1, keepdims=True)
+
+    exp_scores = np.exp(shifted_scores)
+
+    probabilities = exp_scores / np.sum(exp_scores, axis=1, keepdims=True)
+
+    return probabilities
+
+def cross_entropy(probabilities, target_classes, epsilon=1e-5, alpha=1e-2): 
+    batch_size = probabilities.shape[0]
+
+    correct_class_probs = probabilities[np.arange(batch_size), target_classes]
+
+    correct_class_probs = np.clip(correct_class_probs, epsilon, 1 - epsilon)
+
+    loss_vector = -np.log(correct_class_probs) 
+
+    average_loss = np.mean(loss_vector) + alpha*weight_decay()
+
+    return average_loss
