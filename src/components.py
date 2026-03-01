@@ -1,11 +1,27 @@
 import numpy as np 
-import matplotlib.pyplot as plt
 
-def convolution(x, kernel, stride=1, padding=0, depth_wise=False): 
+def get_conv_indices(x, kernel, padding=1, stride=1): 
+    x_shape = x.shape
+    N, H, W, C = x_shape
+
+    filter_h = kernel.shape[0]
+    filter_w = kernel.shape[1]
+
+    kernel_passes_h = (H - filter_h + 2 * padding) // stride + 1 
+    kernel_passes_w = (W - filter_w + 2 * padding) // stride + 1
+
+    i0 = np.repeat(np.arange(filter_h), filter_w)
+    i0 = np.tile(i0, C)
+    j0 = np.tile(np.arange(filter_w), filter_h * C)
+    i1 = stride * np.repeat(np.arange(kernel_passes_h), kernel_passes_w)
+    j1 = stride * np.tile(np.arange(kernel_passes_w), kernel_passes_h)
+
+def convolution(x, kernel, bias, stride=1, padding=0, depth_wise=False): 
+    #x = [batch, height, width, channels]
     #kernel = [height, width, channels, filters]
-    kernel_passes_x = (x.shape[0] - kernel.shape[0] + 2 * padding) // stride + 1 
-    kernel_passes_y = (x.shape[1] - kernel.shape[1] + 2 * padding) // stride + 1
-    channels = x.shape[2]
+    kernel_passes_x = (x.shape[1] - kernel.shape[0] + 2 * padding) // stride + 1 
+    kernel_passes_y = (x.shape[2] - kernel.shape[1] + 2 * padding) // stride + 1
+    channels = x.shape[3]
     filters = kernel.shape[3] if len(kernel.shape) == 4 else 1
     padded_x = padding_image(x, padding)
 
@@ -31,9 +47,9 @@ def convolution(x, kernel, stride=1, padding=0, depth_wise=False):
                     image_patch = padded_x[h_start:h_end, w_start:w_end, :]
 
                     if depth_wise: 
-                        output[i, j, :] = np.sum(image_patch * current_kernel, axis=(0,1))
+                        output[i, j, :] = np.sum(image_patch * current_kernel, axis=(0,1)) + bias
                     else:
-                        output[i, j, filter] = np.sum(image_patch * current_kernel)
+                        output[i, j, filter] = np.sum(image_patch * current_kernel) + bias
 
         except Exception as e: 
             print(f"Error on performing convolution on filter: {filter}, error:{e}")
@@ -90,31 +106,6 @@ def relu(x):
 
 def leaky_relu(x, alpha=0.01): 
     return np.where(x > 0, x, x * alpha)
-
-class BatchNorm2D:
-    def __init__(self, channels, alpha=0.1):
-        self.running_mean = np.zeros(channels)
-        self.running_variance = np.ones(channels)
-        
-        # alpha in your formula
-        self.momentum = alpha
-
-    def forward(self, batch, gamma, beta, training=True, e=1e-5):
-        if training:
-
-            mean = np.mean(batch, axis=(0, 1, 2))
-            variance = np.var(batch, axis=(0, 1, 2))
-
-            self.running_mean = self.momentum * mean + (1 - self.momentum) * self.running_mean
-            self.running_variance = self.momentum * variance + (1 - self.momentum) * self.running_variance
-
-            batch_normalized = (batch - mean) / np.sqrt(variance + e)
-            
-        else:
-            batch_normalized = (batch - self.running_mean) / np.sqrt(self.running_variance + e)
-
-        y = gamma * batch_normalized + beta
-        return y
     
 def initialization(kernel, type="Xa"): 
     kernel_shape = kernel.shape
@@ -129,10 +120,6 @@ def initialization(kernel, type="Xa"):
         weights = np.random.randn(*kernel_shape) * np.sqrt(2 / fan_in) #If ReLU
                                                 
     return weights 
-
-def weight_decay(w):
-    weight_decay = w**2
-    return weight_decay 
 
 def softmax(scores): 
     #scores_shape = (Batch_size, Num_classes)
@@ -153,6 +140,16 @@ def cross_entropy(probabilities, target_classes, epsilon=1e-5, alpha=1e-2):
 
     loss_vector = -np.log(correct_class_probs) 
 
-    average_loss = np.mean(loss_vector) + alpha*weight_decay()
+    average_loss = np.mean(loss_vector) 
 
     return average_loss
+
+def fully_connected(x, weights, bias):
+    x_flattened = np.reshape(x.shape[0], -1)
+
+    output = x_flattened @ weights + bias
+    return output
+
+def res_con(f_x, x): 
+    return f_x + x 
+
