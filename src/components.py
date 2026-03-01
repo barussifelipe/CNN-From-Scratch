@@ -16,6 +16,58 @@ def get_conv_indices(x, kernel, padding=1, stride=1):
     i1 = stride * np.repeat(np.arange(kernel_passes_h), kernel_passes_w)
     j1 = stride * np.tile(np.arange(kernel_passes_w), kernel_passes_h)
 
+    i = i0.reshape(1, -1) + i1.reshape(-1, 1)
+
+    j = j0.reshape(1, -1) + j1.reshape(-1, 1)
+
+    k = np.repeat(np.arange(C), filter_h * filter_w).reshape[-1, 1]
+
+    return (i, j, k)
+
+def im2col(x, kernel, padding=1, stride=1, depth_wise=False): 
+    #X shape = [batch, height, width, channels]
+    p = padding 
+
+    x_padded = padding_image(x, pad_width=padding)
+
+    filter_h = kernel.shape[0]
+    filter_w = kernel.shape[1]
+
+    i, j, k = get_conv_indices(x, kernel, padding, stride)
+
+    cols = x_padded[:, i, j, k]
+
+    C = x.shape[3]
+    if not depth_wise:
+        cols = cols.reshape(-1, filter_h * filter_w * C)
+    else:
+        cols = cols.reshape(-1, filter_h * filter_w, C)
+
+    return cols #cols.shape = [patches * batch_size, pixels per batch]
+
+def col2im(cols, x, kernel, padding=1, stride=1):
+    x_shape = x.shape
+    N, H, W, C = x_shape
+
+    filter_h = kernel.shape[0]
+    filter_w = kernel.shape[1]
+
+    H_padded, W_padded = H + 2 * padding, W + 2 * padding 
+
+    x_padded = np.zeros((N, H_padded, W_padded, C), dtype=cols.dtype)
+
+    i, j, k = get_conv_indices(x, kernel, padding=padding, stride=stride)
+
+    cols_reshaped = cols.reshape(N, -1, filter_h * filter_w * C)
+
+    np.add.at(x_padded, (slice(None), i, j, k), cols_reshaped)
+
+    if padding > 0: 
+        return x_padded[:, padding:-padding, padding:-padding, :]
+    else:
+        return x_padded 
+
+
 def convolution(x, kernel, bias, stride=1, padding=0, depth_wise=False): 
     #x = [batch, height, width, channels]
     #kernel = [height, width, channels, filters]
@@ -98,8 +150,9 @@ def pooling(x, filter_size=2, stride=1, type="max"):
 
 
 def padding_image(x, pad_width):
-    np.pad(x, pad_width= ((pad_width, pad_width), (pad_width, pad_width), (0, 0)))
-    return 
+    x_padded = np.pad(x, pad_width= ((0, 0), (pad_width, pad_width), (pad_width, pad_width), (0, 0)), mode="constant")
+
+    return x_padded
 
 def relu(x): 
     return np.maximum(0, x)
@@ -107,8 +160,8 @@ def relu(x):
 def leaky_relu(x, alpha=0.01): 
     return np.where(x > 0, x, x * alpha)
     
-def initialization(kernel, type="Xa"): 
-    kernel_shape = kernel.shape
+def initialization(kernel_shape, type="Xa"): 
+
     if len(kernel_shape) == 4:
         fan_in = kernel_shape[0] * kernel_shape[1] * kernel_shape[2]
     else: 
