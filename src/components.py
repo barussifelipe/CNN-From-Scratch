@@ -1,4 +1,4 @@
-import numpy as np 
+import cupy as np 
 
 def get_conv_indices(x, kernel, padding=1, stride=1): 
     x_shape = x.shape
@@ -20,13 +20,12 @@ def get_conv_indices(x, kernel, padding=1, stride=1):
 
     j = j0.reshape(1, -1) + j1.reshape(-1, 1)
 
-    k = np.repeat(np.arange(C), filter_h * filter_w).reshape[-1, 1]
+    k = np.repeat(np.arange(C), filter_h * filter_w).reshape(1, -1)
 
     return (i, j, k)
 
 def im2col(x, kernel, padding=1, stride=1, depth_wise=False): 
     #X shape = [batch, height, width, channels]
-    p = padding 
 
     x_padded = padding_image(x, pad_width=padding)
 
@@ -117,7 +116,7 @@ def convolution(x, kernel, bias, stride=1, padding=0, depth_wise=False):
     return output, parameters/1000, memory/1000 #remember to set memory to inputsize = x.shape[0] * x.shape[1] * x.shape[2]. parameters = 0. 
 
 
-def pooling(x, filter_size=2, stride=1, type="max"):
+def pooling(x, filter_size=2, stride=1, ptype="max"):
     filter_passes_x = (x.shape[0] - filter_size) // stride + 1 
     filter_passes_y = (x.shape[1] - filter_size) // stride + 1 
     channels = x.shape[2]
@@ -134,9 +133,9 @@ def pooling(x, filter_size=2, stride=1, type="max"):
 
                 image_patch = x[h_start:h_end, w_start:w_end, :]
 
-                if type == "max": 
+                if ptype == "max": 
                     output[i, j, :] = np.max(image_patch, axis=(0,1))
-                elif type == "avg": 
+                elif ptype == "avg": 
                     output[i, j, :] = np.mean(image_patch, axis=(0,1))
 
     except Exception as e: 
@@ -154,11 +153,6 @@ def padding_image(x, pad_width):
 
     return x_padded
 
-def relu(x): 
-    return np.maximum(0, x)
-
-def leaky_relu(x, alpha=0.01): 
-    return np.where(x > 0, x, x * alpha)
     
 def initialization(kernel_shape, type="Xa"): 
 
@@ -184,24 +178,19 @@ def softmax(scores):
 
     return probabilities
 
-def cross_entropy(probabilities, target_classes, epsilon=1e-5, alpha=1e-2): 
+def cross_entropy(probabilities, target_classes, epsilon=1e-5): 
     batch_size = probabilities.shape[0]
 
-    correct_class_probs = probabilities[np.arange(batch_size), target_classes]
+    correct_class_probs = np.sum(probabilities * target_classes, axis=1)
 
     correct_class_probs = np.clip(correct_class_probs, epsilon, 1 - epsilon)
 
     loss_vector = -np.log(correct_class_probs) 
 
-    average_loss = np.mean(loss_vector) 
+    average_loss = np.mean(loss_vector, axis=0) 
 
     return average_loss
 
-def fully_connected(x, weights, bias):
-    x_flattened = np.reshape(x.shape[0], -1)
-
-    output = x_flattened @ weights + bias
-    return output
 
 def res_con(f_x, x): 
     return f_x + x 
