@@ -37,17 +37,17 @@ class CNN:
         self.inc1_proj  = layers.Convolution(1, 1, 480, True, False, m) # shortcut 256->480
 
         # ================ ResBlock transition 1->2 (480 -> 480) ================
-        self.trans12_conv = layers.Convolution(3, 3, 480, True, False, m)
-        self.trans12_bn   = layers.BatchNorm2D(480, np.ones(480), np.zeros(480), sgd_momentum=m)
-        self.trans12_relu = layers.ReLu()
+        #self.trans12_conv = layers.Convolution(3, 3, 480, True, False, m)
+        #self.trans12_bn   = layers.BatchNorm2D(480, np.ones(480), np.zeros(480), sgd_momentum=m)
+        #self.trans12_relu = layers.ReLu()
 
         # ================ Inception 2 (480 -> 480) ================
         self.inception2 = layers.InceptionModule(sgd_momentum=m)
 
         # ================ ResBlock transition 2->3 (480 -> 480) ================
-        self.trans23_conv = layers.Convolution(3, 3, 480, True, False, m)
-        self.trans23_bn   = layers.BatchNorm2D(480, np.ones(480), np.zeros(480), sgd_momentum=m)
-        self.trans23_relu = layers.ReLu()
+        #self.trans23_conv = layers.Convolution(3, 3, 480, True, False, m)
+        #self.trans23_bn   = layers.BatchNorm2D(480, np.ones(480), np.zeros(480), sgd_momentum=m)
+        #self.trans23_relu = layers.ReLu()
 
         # ================ Inception 3 (480 -> 480) ================
         self.inception3 = layers.InceptionModule(sgd_momentum=m)
@@ -101,11 +101,11 @@ class CNN:
         out = components.res_con(inc1_out, inc1_proj)
 
         # --- ResBlock transition 1->2: conv->BN->ReLU + identity ---
-        self.trans12_identity = out
-        trans_out = self.trans12_conv.forward(out, stride=1, padding=1)
-        trans_out = self.trans12_bn.forward(trans_out, training=training)
-        trans_out = self.trans12_relu.forward(trans_out)
-        out = components.res_con(trans_out, self.trans12_identity)
+        #self.trans12_identity = out
+        #trans_out = self.trans12_conv.forward(out, stride=1, padding=1)
+        #trans_out = self.trans12_bn.forward(trans_out, training=training)
+        #trans_out = self.trans12_relu.forward(trans_out)
+        #out = components.res_con(trans_out, self.trans12_identity)
 
         # --- Inception 2 (identity residual: 480 -> 480) ---
         self.inc2_identity = out
@@ -113,11 +113,11 @@ class CNN:
         out = components.res_con(inc2_out, self.inc2_identity)
 
         # --- ResBlock transition 2->3: conv->BN->ReLU + identity ---
-        self.trans23_identity = out
-        trans_out = self.trans23_conv.forward(out, stride=1, padding=1)
-        trans_out = self.trans23_bn.forward(trans_out, training=training)
-        trans_out = self.trans23_relu.forward(trans_out)
-        out = components.res_con(trans_out, self.trans23_identity)
+        #self.trans23_identity = out
+        #trans_out = self.trans23_conv.forward(out, stride=1, padding=1)
+        #trans_out = self.trans23_bn.forward(trans_out, training=training)
+        #trans_out = self.trans23_relu.forward(trans_out)
+        #out = components.res_con(trans_out, self.trans23_identity)
 
         # --- Inception 3 (identity residual: 480 -> 480) ---
         self.inc3_identity = out
@@ -170,20 +170,20 @@ class CNN:
         dy = dy_inc3 + dy
 
         # ResBlock transition 2->3 (identity residual)
-        dy_trans23 = self.trans23_relu.backward(dy)
-        dy_trans23 = self.trans23_bn.backward(dy_trans23, lr)
-        dy_trans23 = self.trans23_conv.backward(dy_trans23, lr)
-        dy = dy_trans23 + dy
+        #dy_trans23 = self.trans23_relu.backward(dy)
+        #dy_trans23 = self.trans23_bn.backward(dy_trans23, lr)
+        #dy_trans23 = self.trans23_conv.backward(dy_trans23, lr)
+        #dy = dy_trans23 + dy
 
         # Inception 2 (identity residual)
         dy_inc2 = self.inception2.backward(dy, lr)
         dy = dy_inc2 + dy
 
         # ResBlock transition 1->2 (identity residual)
-        dy_trans12 = self.trans12_relu.backward(dy)
-        dy_trans12 = self.trans12_bn.backward(dy_trans12, lr)
-        dy_trans12 = self.trans12_conv.backward(dy_trans12, lr)
-        dy = dy_trans12 + dy
+        #dy_trans12 = self.trans12_relu.backward(dy)
+        #dy_trans12 = self.trans12_bn.backward(dy_trans12, lr)
+        #dy_trans12 = self.trans12_conv.backward(dy_trans12, lr)
+        #dy = dy_trans12 + dy
 
         # Inception 1 (projection residual)
         dy_inc1 = self.inception1.backward(dy, lr)
@@ -248,10 +248,10 @@ class CNN:
         for inc in [self.inception1, self.inception2, self.inception3]:
             total += self._inception_params(inc)
         # Transition ResBlocks
-        for conv in [self.trans12_conv, self.trans23_conv]:
-            total += self._conv_params(conv)
-        for bn in [self.trans12_bn, self.trans23_bn]:
-            total += self._bn_params(bn)
+        #for conv in [self.trans12_conv, self.trans23_conv]:
+            #total += self._conv_params(conv)
+        #for bn in [self.trans12_bn, self.trans23_bn]:
+            #total += self._bn_params(bn)
         # Post-GAP BN
         total += self._bn_params(self.post_gap_bn)
         # FC
@@ -275,14 +275,14 @@ class CNN:
         for _ in range(3):
             elems += N * H2 * W2 * 480 # inception output
             elems += N * H2 * W2 * 480 # residual add
-        for _ in range(2):
-            elems += N * H2 * W2 * 480 # transition conv+BN+ReLU
-            elems += N * H2 * W2 * 480 # transition residual add
+        #for _ in range(2):
+            #elems += N * H2 * W2 * 480 # transition conv+BN+ReLU
+            #elems += N * H2 * W2 * 480 # transition residual add
         # GAP + post BN/ReLU + FC
         elems += N * 480
         elems += N * 256
         elems += N * 100
-        bytes_per_elem = 8  # float64
+        bytes_per_elem = 2  # float32
         return elems * bytes_per_elem
 
     def print_summary(self, input_shape):
@@ -323,17 +323,57 @@ class CNN:
             all_probs.append(probs)
         return np.concatenate(all_probs, axis=0)
 
+
     @staticmethod
     def accuracy(probs, y_true):
-        preds = np.argmax(probs, axis=1)
-        return np.mean(preds == y_true)
+        # 1. Get integer predictions: Shape (N,)
+        preds = np.argmax(probs, axis=1) 
+        
+        # 2. If y_true is a 2D one-hot matrix, crush it back to 1D integers
+        if y_true.ndim == 2:
+            y_true = np.argmax(y_true, axis=1)
+            
+        # 3. Compare them cleanly
+        return float(np.mean(preds == y_true))
     
+    def augment_batch(self, xb):
+        B, H, W, C = xb.shape
+
+        # ==========================================
+        # 1. Random Horizontal Flip (50% chance)
+        # ==========================================
+        flip_mask = np.random.rand(B) > 0.5
+        xb[flip_mask] = xb[flip_mask, :, ::-1, :]
+
+        # ==========================================
+        # 2. Pad & Random Crop (Translation & Scale)
+        # ==========================================
+        # Pad 4 pixels on height and width dimensions with zeros (black)
+        padded = np.pad(xb, ((0, 0), (4, 4), (4, 4), (0, 0)), mode='constant', constant_values=0)
+        
+        cropped_xb = np.zeros_like(xb)
+        
+        # Generate random start coordinates for the crop (from 0 to 8)
+        y_starts = np.random.randint(0, 9, size=B) 
+        x_starts = np.random.randint(0, 9, size=B)
+        
+       
+        for i in range(B):
+            y = int(y_starts[i])
+            x = int(x_starts[i])
+            cropped_xb[i] = padded[i, y:y+H, x:x+W, :]
+            
+        xb = cropped_xb
+
+        return xb
 
     def train(self, X_train, y_train, X_val, y_val,
               epochs, batch_size, learning_rate, patience=10):
         history = {"train_loss": [], "train_acc": [], "val_acc": []}
         N = X_train.shape[0]
-        self.print_summary(X_train.shape)
+        batch = X_train[[batch_size], :, :, :]
+        
+        self.print_summary(batch.shape)
 
         plt.ion()
         fig, (ax1, ax2) = plt.subplots(1,2, figsize=(14,5))
@@ -349,17 +389,19 @@ class CNN:
             for i in range(0, N, batch_size):
                
 
-                xb = X_train[i:i + batch_size]
+
+                xb = X_train[i:i + batch_size].copy()
                 yb = y_train[i:i + batch_size]
+
+                xb = self.augment_batch(xb)
+
                 yb_onehot = self.process_cifar_labels(yb)
 
                 loss, probs = self.train_step(xb, yb_onehot, learning_rate)
                 epoch_loss += loss * xb.shape[0]
                 epoch_correct += np.sum(np.argmax(probs, axis=1) == yb)
 
-                print(f"Batch {i + 1}/{N} of epoch {epoch + 1} /{epochs} "
-                  f"- loss: {epoch_loss / i :.4f} "
-                  f"- train_acc: {epoch_correct / i:.4f} ")
+                print(f"Batch {i + 1}/{N} of epoch {epoch + 1}/{epochs} ")
 
             train_loss = epoch_loss / N
             train_acc  = epoch_correct / N
@@ -378,6 +420,7 @@ class CNN:
                 }
                 
                 self.save_checkpoint(val_acc, current_hyperparams, epoch + 1)
+                epochs_without_improvement = 0
             else: 
                 epochs_without_improvement += 1 
                 print(f"No improvement for {epochs_without_improvement} epochs.")
@@ -388,9 +431,12 @@ class CNN:
                 break
 
 
-            history["train_loss"].append(float(train_loss.get()))
-            history["train_acc"].append(float(train_acc.get()))
-            history["val_acc"].append(float(val_acc.get()))
+            # If train_loss and train_acc are still CuPy arrays, leave their .get()
+            history["train_loss"].append(float(train_loss.get() if hasattr(train_loss, 'get') else train_loss))
+            history["train_acc"].append(float(train_acc.get() if hasattr(train_acc, 'get') else train_acc))
+            
+            # val_acc is already a standard float now!
+            history["val_acc"].append(val_acc)
 
             print(f"Epoch {epoch + 1}/{epochs} "
                   f"- loss: {train_loss:.4f} "
@@ -422,8 +468,22 @@ class CNN:
             ax2.legend()
             ax2.grid(True)
 
-            # FORCE the window to update (pauses for 10 milliseconds)
-            plt.pause(0.01)
+            # ==========================================
+            # Force the GUI to flush and redraw
+            # ==========================================
+            # 1. Force the canvas to physically draw the new lines
+            fig.canvas.draw()
+            
+            # 2. Force Windows to process all pending GUI events (unfreezes the window)
+            fig.canvas.flush_events()
+            
+            # 3. Increase the pause slightly (0.1 seconds instead of 0.01)
+            plt.pause(0.1)
+        lr = current_hyperparams.get("learning_rate", 0)
+        bs = current_hyperparams.get("batch_size", 0)
+
+        os.makedirs("models_image", exist_ok=True)
+        fig.savefig(f"models_image/live_training_history_lr_{lr}_bs{bs}_epochs{epochs}.png", bbox_inches='tight')
 
         plt.ioff()
         plt.show() 
@@ -465,9 +525,17 @@ class CNN:
             "epoch": epoch,
             "layer_weights": {} # Changed to a dictionary!
         }
+        all_layers = {}
+
+        for name, layer in vars(self).items():
+            all_layers[name] = layer
+            # If the layer is an Inception block, open it and grab its inner layers!
+            if isinstance(layer, layers.InceptionModule):
+                for sub_name, sub_layer in vars(layer).items():
+                    all_layers[f"{name}.{sub_name}"] = sub_layer
         
         # 2. Dynamically scan every attribute in the Roma class
-        for layer_name, layer in vars(self).items():
+        for layer_name, layer in all_layers.items():
             state = {}
 
             def to_cpu(tensor):
@@ -475,10 +543,19 @@ class CNN:
             
             if hasattr(layer, 'kernel'):
                 state['kernel'] = to_cpu(layer.kernel)
+                if hasattr(layer, 'v_kernel'): 
+                    state['v_kernel'] = to_cpu(layer.v_kernel)
+                    
             if hasattr(layer, 'weight'):
                 state['weight'] = to_cpu(layer.weight)
+                if hasattr(layer, 'v_weight'): 
+                    state['v_weight'] = to_cpu(layer.v_weight)
+                    
             if hasattr(layer, 'bias'):
                 state['bias'] = to_cpu(layer.bias)
+                if hasattr(layer, 'v_bias'): 
+                    state['v_bias'] = to_cpu(layer.v_bias)
+                    
             if hasattr(layer, 'gamma'):
                 state['gamma'] = to_cpu(layer.gamma)
                 state['beta'] = to_cpu(layer.beta)
@@ -523,33 +600,36 @@ class CNN:
 
         loaded_weights = checkpoint.get("layer_weights", {})
 
+        all_layers = {}
+        for name, layer in vars(self).items():
+            all_layers[name] = layer
+            if isinstance(layer, layers.InceptionModule):
+                for sub_name, sub_layer in vars(layer).items():
+                    all_layers[f"{name}.{sub_name}"] = sub_layer
+
+
         # 3. Dynamically map the saved matrices back into the model
         for layer_name, state in loaded_weights.items():
-            
-            # Check if your current code actually has a layer with this exact name
-            if hasattr(self, layer_name):
-                
-                # Grab the live layer object from memory
-                layer = getattr(self, layer_name)
+            if layer_name in all_layers:
+                layer = all_layers[layer_name]
 
-                # Restore Convolution matrices
+                # Restore Convolution matrices & their momentum
                 if 'kernel' in state and hasattr(layer, 'kernel'):
                     layer.kernel = np.array(state['kernel'])
+                if 'v_kernel' in state and hasattr(layer, 'v_kernel'):
+                    layer.v_kernel = np.array(state['v_kernel'])
                 
-                # Restore Fully Connected matrices
+                # Restore Fully Connected matrices & their momentum
                 if 'weight' in state and hasattr(layer, 'weight'):
                     layer.weight = np.array(state['weight'])
+                if 'v_weight' in state and hasattr(layer, 'v_weight'):
+                    layer.v_weight = np.array(state['v_weight'])
                 
-                # Restore Biases (Conv and FC)
+                # Restore Biases & their momentum
                 if 'bias' in state and hasattr(layer, 'bias'):
                     layer.bias = np.array(state['bias'])
-
-                # Restore BatchNorm (The most critical part for predictions!)
-                if 'gamma' in state and hasattr(layer, 'gamma'):
-                    layer.gamma = np.array(state['gamma'])
-                    layer.beta = np.array(state['beta'])
-                    layer.running_mean = np.array(state['running_mean'])
-                    layer.running_variance = np.array(state['running_variance'])
+                if 'v_bias' in state and hasattr(layer, 'v_bias'):
+                    layer.v_bias = np.array(state['v_bias'])
             else:
                 print(f"Warning: Layer '{layer_name}' found in checkpoint but not in current model architecture.")
 

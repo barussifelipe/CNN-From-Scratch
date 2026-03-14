@@ -15,7 +15,7 @@ def load_cifar100_data():
     return train, test, meta 
 
 def process_cifar_data(data):
-    data = data.reshape(-1, 3, 32, 32).transpose(0, 2, 3, 1).astype(np.float32) / 255.0
+    data = data.reshape(-1, 3, 32, 32).transpose(0, 2, 3, 1).astype(np.float16) / 255.0
     return data 
 
 def process_cifar_labels(labels, num_classes=100):
@@ -58,10 +58,9 @@ def test_data(test):
     Y = np.array(test[b"fine_labels"])
 
     X_test  = process_cifar_data(X)
-    y_test = process_cifar_labels(Y)
     
 
-    return X_test, y_test
+    return X_test, Y
 
 if __name__ == "__main__":
     cnn = model.CNN() 
@@ -71,15 +70,16 @@ if __name__ == "__main__":
     X_test, y_test = test_data(test)
  
     epochs = 100
-    batch_size = 64
-    learning_rate = 1e-2
+    batch_size = 32
+    learning_rate = 1e-3
 
-    cnn.load_checkpoint("checkpoints/roma_lr0.01_bs64_epoch7_acc0.3882.pkl")
+   
+    cnn.load_checkpoint("checkpoints/roma_lr0.001_bs32_epoch41_acc0.5280.pkl")
 
-    history = cnn.train(X_train, y_train, X_val, y_val, epochs, batch_size, learning_rate)
+    
 
     predictions = cnn.predict_batched(X_test, batch_size)
     test_accuracy = cnn.accuracy(predictions, y_test)
 
-    print(f'Test accuracy{test_accuracy:.4f}')
+    print(f'Test accuracy {test_accuracy:.4f}')
     
