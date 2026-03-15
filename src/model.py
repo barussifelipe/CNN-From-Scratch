@@ -371,7 +371,7 @@ class CNN:
               epochs, batch_size, learning_rate, patience=10):
         history = {"train_loss": [], "train_acc": [], "val_acc": []}
         N = X_train.shape[0]
-        batch = X_train[[batch_size], :, :, :]
+        batch = X_train[0:batch_size, :, :, :]
         
         self.print_summary(batch.shape)
 
