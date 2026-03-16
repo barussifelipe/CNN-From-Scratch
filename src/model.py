@@ -11,37 +11,37 @@ class CNN:
 
         # ================ ResBlock ================
         # conv3x3x64 -> BN -> ReLU
-        self.res_conv1 = layers.Convolution(3, 3, 64, True, False, m)
-        self.res_bn1   = layers.BatchNorm2D(64, np.ones(64), np.zeros(64), sgd_momentum=m)
+        self.res_conv1 = layers.Convolution(3, 3, 16, True, False, m)
+        self.res_bn1   = layers.BatchNorm2D(16, np.ones(16), np.zeros(16), sgd_momentum=m)
         self.res_relu1 = layers.ReLu()
         # conv3x3x128 -> BN -> ReLU
-        self.res_conv2 = layers.Convolution(3, 3, 128, True, False, m)
-        self.res_bn2   = layers.BatchNorm2D(128, np.ones(128), np.zeros(128), sgd_momentum=m)
+        self.res_conv2 = layers.Convolution(3, 3, 32, True, False, m)
+        self.res_bn2   = layers.BatchNorm2D(32, np.ones(32), np.zeros(32), sgd_momentum=m)
         self.res_relu2 = layers.ReLu()
         # conv3x3x256 -> BN -> ReLU
-        self.res_conv3 = layers.Convolution(3, 3, 256, True, False, m)
-        self.res_bn3   = layers.BatchNorm2D(256, np.ones(256), np.zeros(256), sgd_momentum=m)
+        self.res_conv3 = layers.Convolution(3, 3, 64, True, False, m)
+        self.res_bn3   = layers.BatchNorm2D(64, np.ones(64), np.zeros(64), sgd_momentum=m)
         self.res_relu3 = layers.ReLu()
         # maxpool 2x2
         self.res_pool  = layers.Pooling(2, stride=2, ptype="max")
         # Shortcut: project + downsample
-        self.res_shortcut      = layers.Convolution(1, 1, 256, True, False, m)
+        self.res_shortcut      = layers.Convolution(1, 1, 64, True, False, m)
         self.res_shortcut_pool = layers.Pooling(2, stride=2, ptype="avg")
 
         # Post-ResBlock BN -> ReLU
-        self.post_res_bn   = layers.BatchNorm2D(256, np.ones(256), np.zeros(256), sgd_momentum=m)
+        self.post_res_bn   = layers.BatchNorm2D(64, np.ones(64), np.zeros(64), sgd_momentum=m)
         self.post_res_relu = layers.ReLu()
 
-        # ================ Inception 1 (256 -> 480) ================
-        self.inception1 = layers.InceptionModule(sgd_momentum=m)       # out 480
-        self.inc1_proj  = layers.Convolution(1, 1, 480, True, False, m) # shortcut 256->480
+        # ================ Inception 1 (64 -> 128) ================
+        self.inception1 = layers.InceptionModule(sgd_momentum=m)       # out 128
+        self.inc1_proj  = layers.Convolution(1, 1, 128, True, False, m) # shortcut 64->128
 
         # ================ ResBlock transition 1->2 (480 -> 480) ================
         #self.trans12_conv = layers.Convolution(3, 3, 480, True, False, m)
         #self.trans12_bn   = layers.BatchNorm2D(480, np.ones(480), np.zeros(480), sgd_momentum=m)
         #self.trans12_relu = layers.ReLu()
 
-        # ================ Inception 2 (480 -> 480) ================
+        # ================ Inception 2 (128 -> 128) ================
         self.inception2 = layers.InceptionModule(sgd_momentum=m)
 
         # ================ ResBlock transition 2->3 (480 -> 480) ================
@@ -49,19 +49,19 @@ class CNN:
         #self.trans23_bn   = layers.BatchNorm2D(480, np.ones(480), np.zeros(480), sgd_momentum=m)
         #self.trans23_relu = layers.ReLu()
 
-        # ================ Inception 3 (480 -> 480) ================
+        # ================ Inception 3 (128 -> 128) ================
         self.inception3 = layers.InceptionModule(sgd_momentum=m)
 
         # ================ Global Average Pool ================
         self.gap = layers.GlobalAveragePool()
 
         # ================ Post-GAP BN -> ReLU ================
-        self.post_gap_bn   = layers.BatchNorm2D(480, np.ones(480), np.zeros(480), sgd_momentum=m)
+        self.post_gap_bn   = layers.BatchNorm2D(128, np.ones(128), np.zeros(128), sgd_momentum=m)
         self.post_gap_relu = layers.ReLu()
 
         # ================ FC head ================
-        self.fc1 = layers.FullyConnected(480, 256, sgd_momentum=m)
-        self.fc2 = layers.FullyConnected(256, num_classes, sgd_momentum=m)
+        self.fc1 = layers.FullyConnected(128, 128, sgd_momentum=m)
+        self.fc2 = layers.FullyConnected(128, num_classes, sgd_momentum=m)
 
         # ================ Loss ================
         self.criterion = layers.SoftmaxCrossEntropy()
@@ -630,6 +630,12 @@ class CNN:
                     layer.bias = np.array(state['bias'])
                 if 'v_bias' in state and hasattr(layer, 'v_bias'):
                     layer.v_bias = np.array(state['v_bias'])
+
+                if 'gamma' in state and hasattr(layer, 'gamma'):
+                    layer.gamma = np.array(state['gamma'])
+                    layer.beta = np.array(state['beta'])
+                    layer.running_mean = np.array(state['running_mean'])
+                    layer.running_variance = np.array(state['running_variance'])                    
             else:
                 print(f"Warning: Layer '{layer_name}' found in checkpoint but not in current model architecture.")
 

@@ -441,8 +441,8 @@ class GlobalAveragePool:
 
 
 class InceptionModule:
-    def __init__(self, b1_filters=128, b2_reduce=64, b2_filters=192,
-                 b3_reduce=64, b3_filters=96, b4_filters=64, sgd_momentum=0.9):
+    def __init__(self, b1_filters=32, b2_reduce=16, b2_filters=48,
+                 b3_reduce=16, b3_filters=32, b4_filters=16, sgd_momentum=0.9):
         self.b1_filters = b1_filters
         self.b2_filters = b2_filters
         self.b3_filters = b3_filters
