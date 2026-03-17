@@ -69,13 +69,11 @@ if __name__ == "__main__":
     X_train, X_val, y_train, y_val = train_val_data(train)
     X_test, y_test = test_data(test)
  
-    epochs = 200
+    epochs = 100
     batch_size = 32
     learning_rate = 1e-3
 
-    cnn.load_checkpoint("checkpoints/roma_lr0.001_bs32_epoch100_acc0.5222.pkl")
-
-    #history = cnn.train(X_train, y_train, X_val, y_val, epochs, batch_size, learning_rate)
+    history = cnn.train(X_train, y_train, X_val, y_val, epochs, batch_size, learning_rate)
 
 
     predictions = cnn.predict_batched(X_test, batch_size)

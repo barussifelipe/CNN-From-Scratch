@@ -51,7 +51,12 @@ class CNN:
 
         # ================ Inception 3 (128 -> 128) ================
         self.inception3 = layers.InceptionModule(sgd_momentum=m)
+        
+        # # ================ Inception 4 (128 -> 128) ================
+        # self.inception4 = layers.InceptionModule(sgd_momentum=m)
 
+        # # ================ Inception 5 (128 -> 128) ================
+        # self.inception5 = layers.InceptionModule(sgd_momentum=m)
         # ================ Global Average Pool ================
         self.gap = layers.GlobalAveragePool()
 
@@ -119,10 +124,21 @@ class CNN:
         #trans_out = self.trans23_relu.forward(trans_out)
         #out = components.res_con(trans_out, self.trans23_identity)
 
-        # --- Inception 3 (identity residual: 480 -> 480) ---
+        # --- Inception 3 (identity residual: 128 -> 128) ---
         self.inc3_identity = out
         inc3_out = self.inception3.forward(out, training=training)
         out = components.res_con(inc3_out, self.inc3_identity)
+
+
+        #  # --- Inception 4 (identity residual: 128 -> 128) ---
+        # self.inc4_identity = out
+        # inc4_out = self.inception4.forward(out, training=training)
+        # out = components.res_con(inc4_out, self.inc4_identity)
+
+        #  # --- Inception 5(identity residual: 128 -> 128) ---
+        # self.inc5_identity = out
+        # inc5_out = self.inception5.forward(out, training=training)
+        # out = components.res_con(inc5_out, self.inc5_identity)
 
         # --- Global Average Pool -> (N, 480) ---
         out = self.gap.forward(out)
@@ -164,6 +180,14 @@ class CNN:
 
         # GAP
         dy = self.gap.backward(dy)
+
+        # # Inception 5 (identity residual)
+        # dy_inc5 = self.inception5.backward(dy, lr)
+        # dy = dy_inc5 + dy
+
+        #  # Inception 4 (identity residual)
+        # dy_inc4 = self.inception4.backward(dy, lr)
+        # dy = dy_inc4 + dy
 
         # Inception 3 (identity residual)
         dy_inc3 = self.inception3.backward(dy, lr)
@@ -368,7 +392,7 @@ class CNN:
         return xb
 
     def train(self, X_train, y_train, X_val, y_val,
-              epochs, batch_size, learning_rate, patience=10):
+              epochs, batch_size, learning_rate, patience=30, lr_patience = 20, lr_factor = 0.1):
         history = {"train_loss": [], "train_acc": [], "val_acc": []}
         N = X_train.shape[0]
         batch = X_train[0:batch_size, :, :, :]
@@ -424,6 +448,10 @@ class CNN:
             else: 
                 epochs_without_improvement += 1 
                 print(f"No improvement for {epochs_without_improvement} epochs.")
+
+                if epochs_without_improvement % lr_patience == 0:
+                    learning_rate = learning_rate * lr_factor
+                    print(f"\n[LR SCHEDULER] Plateau detected! Dropping Learning Rate to: {learning_rate:.6f}\n")
 
             if epochs_without_improvement >= patience:
                 print(f"\n[EARLY STOPPING] Validation accuracy hasn't improved in {patience} epochs.")
@@ -483,7 +511,7 @@ class CNN:
         bs = current_hyperparams.get("batch_size", 0)
 
         os.makedirs("models_image", exist_ok=True)
-        fig.savefig(f"models_image/live_training_history_lr_{lr}_bs{bs}_epochs{epochs}.png", bbox_inches='tight')
+        fig.savefig(f"models_image/5inc_live_training_history_lr_{lr}_bs{bs}_epochs{epochs}.png", bbox_inches='tight')
 
         plt.ioff()
         plt.show() 
@@ -571,7 +599,7 @@ class CNN:
         bs = hyperparams.get("batch_size", 0)
         
         os.makedirs("checkpoints", exist_ok=True) 
-        filename = f"checkpoints/roma_lr{lr}_bs{bs}_epoch{epoch}_acc{val_acc:.4f}.pkl"
+        filename = f"checkpoints/5in_roma_lr{lr}_bs{bs}_epoch{epoch}_acc{val_acc:.4f}.pkl"
         
         # 4. Save to disk
         with open(filename, 'wb') as f:
