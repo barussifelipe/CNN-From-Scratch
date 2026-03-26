@@ -21,7 +21,7 @@ class CNN:
         # conv3x3x256 -> BN -> ReLU
         self.res_conv3 = layers.Convolution(3, 3, 64, True, False, m)
         self.res_bn3   = layers.BatchNorm2D(64, np.ones(64), np.zeros(64), sgd_momentum=m)
-        self.res_relu3 = layers.ReLu()
+        # self.res_relu3 = layers.ReLu()
         # maxpool 2x2
         self.res_pool  = layers.Pooling(2, stride=2, ptype="max")
         # Shortcut: project + downsample
@@ -86,7 +86,7 @@ class CNN:
 
         out = self.res_conv3.forward(out, stride=1, padding=1)
         out = self.res_bn3.forward(out, training=training)
-        out = self.res_relu3.forward(out)
+        # out = self.res_relu3.forward(out)
 
         out = self.res_pool.forward(out)
 
@@ -220,7 +220,7 @@ class CNN:
 
         # ResBlock main path: pool -> (ReLU->BN->conv) x3
         dy_main = self.res_pool.backward(dy)
-        dy_main = self.res_relu3.backward(dy_main)
+        # dy_main = self.res_relu3.backward(dy_main)
         dy_main = self.res_bn3.backward(dy_main, lr)
         dy_main = self.res_conv3.backward(dy_main, lr)
         dy_main = self.res_relu2.backward(dy_main)
@@ -511,7 +511,7 @@ class CNN:
         bs = current_hyperparams.get("batch_size", 0)
 
         os.makedirs("models_image", exist_ok=True)
-        fig.savefig(f"models_image/5inc_live_training_history_lr_{lr}_bs{bs}_epochs{epochs}.png", bbox_inches='tight')
+        fig.savefig(f"models_image/norelu_live_training_history_lr_{lr}_bs{bs}_epochs{epochs}.png", bbox_inches='tight')
 
         plt.ioff()
         plt.show() 
@@ -599,7 +599,7 @@ class CNN:
         bs = hyperparams.get("batch_size", 0)
         
         os.makedirs("checkpoints", exist_ok=True) 
-        filename = f"checkpoints/5in_roma_lr{lr}_bs{bs}_epoch{epoch}_acc{val_acc:.4f}.pkl"
+        filename = f"checkpoints/norelu_roma_lr{lr}_bs{bs}_epoch{epoch}_acc{val_acc:.4f}.pkl"
         
         # 4. Save to disk
         with open(filename, 'wb') as f:

@@ -165,7 +165,7 @@ class Convolution:
         final_output += self.bias 
         return final_output
 
-    def backward(self, dy, learning_rate, alpha=1e-5):
+    def backward(self, dy, learning_rate, l2=1e-5):
         x = self.cache_input
         w = self.cache_weight 
         filter_h = self.kernel.shape[0]
@@ -198,7 +198,7 @@ class Convolution:
             stride=self.stride
             )   
         
-        dW += alpha * dW
+        dW += l2 * dW
         
         dB = np.sum(dy, axis=(0, 1, 2))
 
@@ -355,14 +355,14 @@ class FullyConnected:
 
         return output #[Batch, dOut]
     
-    def backwards(self, dy, learning_rate, alpha=1e-5): 
+    def backwards(self, dy, learning_rate, l2=1e-5): 
         dy = dy * self.dropout_mask
 
         dW = self.x_flat.T @ dy 
         dX = dy @ self.weight.T 
         dB = np.sum(dy, axis=0, keepdims=True)
 
-        dW += alpha * dW
+        dW += l2 * dW
         
         self.v_weight = self.sgd_momentum * self.v_weight - learning_rate * dW
         self.v_bias = self.sgd_momentum * self.v_bias - learning_rate * dB
