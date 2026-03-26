@@ -47,22 +47,22 @@ This project goes beyond mathematical definitions and focuses heavily on systems
 ## 5. Architectural Evolution & Optimization Journey
 Building this network from scratch required several rigorous architectural iterations to successfully scale the model for the CIFAR-100 dataset ($32 \times 32$ resolution). 
 
-![Intermediate Redudant Convolutions](models_image\train_acc_0.6211_val_acc_0.4952.png)
+![Intermediate Redudant Convolutions](models_image/train_acc_0.6211_val_acc_0.4952.png)
 
 **1. Removing Redundant Bottlenecks:** 
 Initially, the architecture consisted of a ResBlock followed by an Inception module, with standard convolutions placed *between* the Inception blocks. I quickly realized this intermediate convolution was mathematically destroying the heavily parallelized feature extraction achieved by the preceding Inception module. It forcefully squashed the multi-scale features back into a single filter size while massively inflating computational overhead, leading to early overfitting.
 
-![480-Feature Map](models_image\train_acc_0845_val_acc_0.55_epoch35.png)
+![480-Feature Map](models_image/train_acc_0845_val_acc_0.55_epoch35.png)
 
 **2. Scaling the Feature Maps:**
 After dropping the intermediate convolutions, the network was outputting massive 480-channel feature maps directly out of the Inception blocks. Because CIFAR-100 images lack the geometric complexity of $224 \times 224$ images, these 480 channels were largely mapping black zero-padding and white noise. Scaling the parallel channels down to a tighter 128-channel output and adding L2 Regularization with `l2=1e-5` drastically stabilized the network, achieving a baseline validation accuracy of **58%**.
 
-![3-Inception Training](models_image\2_live_training_history_lr_1.0000000000000002e-06_bs32_epochs100.png)
+![3-Inception Training](models_image/2_live_training_history_lr_1.0000000000000002e-06_bs32_epochs100.png)
 
 **3. The Receptive Field Ceiling:**
 To push past 58%, I hypothesized that depth was the limiting factor and stacked two additional Inception blocks (totaling 5). However, validation accuracy completely stalled. By calculating the physical Receptive Field of the parallel branches, I deduced that the network hit the 32-pixel physical boundary of the image by the 3rd block. The 4th and 5th blocks were purely convolving over the artificial zero-padding, meaning adding depth was mathematically incapable of extracting new spatial context. 
 
-![5-Inception Training](models_image\5inc_live_training_history_lr_0.001_bs32_epochs100.png)
+![5-Inception Training](models_image/5inc_live_training_history_lr_0.001_bs32_epochs100.png)
 
 **4. Fixing the Residual Gradient Flow:**
 Finally, while auditing the matrix calculus of the backpropagation pass, I discovered a critical flaw in the initial ResBlock. The final convolution in the main path was passed through a ReLU *before* being added to the identity shortcut. This physically clamped all signals to $\ge 0$, destroying the network's ability to output negative gradient adjustments (i.e., it could only ever "add" to the highway, never "subtract"). Removing this terminal ReLU strictly restored the mathematical integrity of the $F(x) + x$ residual equation.
