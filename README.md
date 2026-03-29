@@ -47,7 +47,7 @@ This project goes beyond mathematical definitions and focuses heavily on systems
 ## 5. Architectural Evolution & Optimization Journey
 Building this network from scratch required several rigorous architectural iterations to successfully scale the model for the CIFAR-100 dataset ($32 \times 32$ resolution). 
 
-![Intermediate Redudant Convolutions](models_image/train_acc_0.6211_val_acc_0.4952.png)
+![Redudant Modules](models_image/train_acc_0.6211_val_acc_0.4952.png)
 
 **1. Removing Redundant Bottlenecks:** 
 Initially, the architecture consisted of a ResBlock followed by an Inception module, with standard convolutions placed *between* the Inception blocks. I quickly realized this intermediate convolution was mathematically destroying the heavily parallelized feature extraction achieved by the preceding Inception module. It forcefully squashed the multi-scale features back into a single filter size while massively inflating computational overhead, leading to early overfitting.
@@ -55,9 +55,13 @@ Initially, the architecture consisted of a ResBlock followed by an Inception mod
 ![480-Feature Map](models_image/train_acc_0845_val_acc_0.55_epoch35.png)
 
 **2. Scaling the Feature Maps:**
-After dropping the intermediate convolutions, the network was outputting massive 480-channel feature maps directly out of the Inception blocks. Because CIFAR-100 images lack the geometric complexity of $224 \times 224$ images, these 480 channels were largely mapping black zero-padding and white noise. Scaling the parallel channels down to a tighter 128-channel output and adding L2 Regularization with `l2=1e-5` drastically stabilized the network, achieving a baseline validation accuracy of **58%**.
+After dropping the intermediate convolutions, the network was outputting massive 480-channel feature maps directly out of the Inception blocks. Because CIFAR-100 images lack the geometric complexity of $224 \times 224$ images, these 480 channels were largely mapping black zero-padding and white noise. Scaling the parallel channels down to a tighter 128-channel output and adding L2 Regularization with `l2=1e-5` drastically stabilized the network, achieving a baseline validation accuracy of **58%** after training for 100 epochs, checking it weren't enought and then training for another 100 epochs.
 
-![3-Inception Training](models_image/2_live_training_history_lr_1.0000000000000002e-06_bs32_epochs100.png)
+First 100 epochs:
+![3-Inception Training](models_image/live_training_history_lr_0.001_bs32_epochs100.png)
+
+Last 100 epochs: 
+![3-Inception Training 200](models_image/2_live_training_history_lr_1.0000000000000002e-06_bs32_epochs100.png)
 
 **3. The Receptive Field Ceiling:**
 To push past 58%, I hypothesized that depth was the limiting factor and stacked two additional Inception blocks (totaling 5). However, validation accuracy completely stalled. By calculating the physical Receptive Field of the parallel branches, I deduced that the network hit the 32-pixel physical boundary of the image by the 3rd block. The 4th and 5th blocks were purely convolving over the artificial zero-padding, meaning adding depth was mathematically incapable of extracting new spatial context. 
@@ -65,10 +69,14 @@ To push past 58%, I hypothesized that depth was the limiting factor and stacked 
 ![5-Inception Training](models_image/5inc_live_training_history_lr_0.001_bs32_epochs100.png)
 
 **4. Fixing the Residual Gradient Flow:**
-Finally, while auditing the matrix calculus of the backpropagation pass, I discovered a critical flaw in the initial ResBlock. The final convolution in the main path was passed through a ReLU *before* being added to the identity shortcut. This physically clamped all signals to $\ge 0$, destroying the network's ability to output negative gradient adjustments (i.e., it could only ever "add" to the highway, never "subtract"). Removing this terminal ReLU strictly restored the mathematical integrity of the $F(x) + x$ residual equation.
+Finally, while auditing the matrix calculus of the backpropagation pass, I discovered a critical flaw in the initial ResBlock. The final convolution in the main path was passed through a ReLU *before* being added to the identity shortcut. This physically clamped all signals to $\ge 0$, destroying the network's ability to output negative gradient adjustments (i.e., it could only ever "add" to the highway, never "subtract"). Removing this terminal ReLU strictly restored the mathematical integrity of the $F(x) + x$ residual equation. In order to achieve the maximum training potencial, I've trained for 200 epochs as well. However, it didn't perform as well as the previous model with 200 epochs, achieving a validation accuracy of **55%**, since the model was more stable, it took longer to arrive at a plateau in order for the lr to change from **1e-3** to **1e-4**, while the other model finished training with a lr of **1e-6**. As shown in the plot, we had a spike around 180 epochs, which is a characteristic behaviour of learning rates change. I hypothetize that while training for 100 epochs more and being more aggresive with the lr_patience, it could have gone over the **60%** of validation accuracy. 
+
+![200-Epochs-NoRELU](models_image/norelu_live_training_history_lr_0.0001_bs32_epochs200.png)
+
+
 
 **Conclusion:** 
-Building this engine entirely from scratch provided invaluable insight into the fact that deep learning isn't just about adding layers. The mathematical dimensions of the matrices, the spatial receptive limits of the filters, the gradient flows of shortcuts, and the GPU memory constraints must all be engineered in perfect unison.
+Building this engine entirely from scratch provided invaluable insight into the fact that deep learning isn't just about adding layers. The mathematical dimensions of the matrices, the spatial receptive limits of the filters, the gradient flows of shortcuts, and the GPU memory constraints must all be engineered in perfect unison in order to achieve a satisfying and solid result. 
 
 
 ## 6. How to Use This Repository

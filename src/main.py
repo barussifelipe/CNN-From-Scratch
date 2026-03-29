@@ -69,7 +69,7 @@ if __name__ == "__main__":
     X_train, X_val, y_train, y_val = train_val_data(train)
     X_test, y_test = test_data(test)
  
-    epochs = 100
+    epochs = 200
     batch_size = 32
     learning_rate = 1e-3
 
